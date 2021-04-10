@@ -17,7 +17,6 @@ function payping_config() {
 	return $configarray;
 }
 
-
 function payping_status_message($code) {
 	switch ($code){
 		case 200 :
@@ -87,7 +86,7 @@ function payping_link($params) {
 	try {
 		$curl = curl_init();
 
-		curl_setopt_array($curl, array(CURLOPT_URL => "https://api.payping.ir/v1/pay",
+		curl_setopt_array($curl, array(CURLOPT_URL => "https://api.payping.ir/v2/pay",
 			CURLOPT_RETURNTRANSFER => true,
 			CURLOPT_ENCODING => "",
 			CURLOPT_MAXREDIRS => 10,
@@ -114,7 +113,7 @@ function payping_link($params) {
 			if ($header['http_code'] == 200) {
 				$response = json_decode($response, true);
 				if (isset($response["code"]) and $response["code"] != '') {
-					$link = sprintf('https://api.payping.ir/v1/pay/gotoipg/%s', $response["code"]);
+					$link = sprintf('https://api.payping.ir/v2/pay/gotoipg/%s', $response["code"]);
 					$return = '<form method="get" action="'.$link.'"><input type="submit" value=" پرداخت " /></form>';
 				} else {
 					$return = ' تراکنش ناموفق بود- شرح خطا : عدم وجود کد ارجاع ';
@@ -131,4 +130,3 @@ function payping_link($params) {
 
 	return $return;
 }
-?>

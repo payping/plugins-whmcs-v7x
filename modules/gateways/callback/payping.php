@@ -1,6 +1,5 @@
 <?php
-    
-	# Required File Includes
+# Required File Includes
 if(file_exists('../../../init.php'))
 {
 require( '../../../init.php' );
@@ -19,9 +18,24 @@ include("../../../includes/invoicefunctions.php");
 	if (!$GATEWAY['type']) die('Module Not Activated'); # Checks gateway module is active before accepting callback
 
 	# Get Returned Variables - Adjust for Post Variable Names from your Gateway's Documentation
-	$invoiceid  = $_GET['clientrefid'];
-	$Amount 	= $_GET['Amount'];
-	$refid  = $_GET['refid'];
+    if( isset( $_POST['clientrefid'] ) ){
+		$invoiceid  = $_POST['clientrefid'];
+	}else{
+		$invoiceid  = $_GET['clientrefid'];
+	}
+
+	if( isset( $_POST['Amount'] ) ){
+		$Amount  = $_POST['Amount'];
+	}else{
+		$Amount  = $_GET['Amount'];
+	}
+
+	if( isset( $_POST['refid'] ) ){
+		$refid  = $_POST['refid'];
+	}else{
+		$refid  = $_GET['refid'];
+	}
+	
 	$invoiceid  = checkCbInvoiceID($invoiceid, $GATEWAY['name']); # Checks invoice ID is a valid invoice number or ends processing
 
 if ( ! function_exists('payping_status_message')){
@@ -52,11 +66,11 @@ if ( ! function_exists('payping_status_message')){
 		return null;
 	}
 }
-$data = array('refId' => $_GET['refid'], 'amount' => $Amount);
+$data = array('refId' => $refid, 'amount' => $Amount );
 try {
 	$curl = curl_init();
 	curl_setopt_array($curl, array(
-		CURLOPT_URL => "https://api.payping.ir/v1/pay/verify",
+		CURLOPT_URL => "https://api.payping.ir/v2/pay/verify",
 		CURLOPT_RETURNTRANSFER => true,
 		CURLOPT_ENCODING => "",
 		CURLOPT_MAXREDIRS => 10,
@@ -81,8 +95,8 @@ try {
 	} else {
 		if ($header['http_code'] == 200) {
 			$response = json_decode($response, true);
-			if (isset($_GET["refid"]) and $_GET["refid"] != '') {
-				$transid = $_GET["refid"] ;
+			if( isset( $refid ) and $refid != '' ){
+				$transid = $refid;
 				if($GATEWAY['Currencies'] == 'ریال'){
 					$Amount  *= 10;
 				}
@@ -102,4 +116,3 @@ try {
 }
 	Header('Location: '.$CONFIG['SystemURL'].'/clientarea.php?action=invoices');
   exit;
-?>
