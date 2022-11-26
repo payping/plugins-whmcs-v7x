@@ -1,5 +1,6 @@
 <?php
-# Required File Includes
+    
+	# Required File Includes
 if(file_exists('../../../init.php'))
 {
 require( '../../../init.php' );
@@ -18,24 +19,9 @@ include("../../../includes/invoicefunctions.php");
 	if (!$GATEWAY['type']) die('Module Not Activated'); # Checks gateway module is active before accepting callback
 
 	# Get Returned Variables - Adjust for Post Variable Names from your Gateway's Documentation
-    if( isset( $_POST['clientrefid'] ) ){
-		$invoiceid  = $_POST['clientrefid'];
-	}else{
-		$invoiceid  = $_GET['clientrefid'];
-	}
-
-	if( isset( $_POST['Amount'] ) ){
-		$Amount  = $_POST['Amount'];
-	}else{
-		$Amount  = $_GET['Amount'];
-	}
-
-	if( isset( $_POST['refid'] ) ){
-		$refid  = $_POST['refid'];
-	}else{
-		$refid  = $_GET['refid'];
-	}
-	
+	$invoiceid  = $_REQUEST['clientrefid'];
+	$Amount 	= $_REQUEST['Amount'];
+	$refid      = $_REQUEST['refid'];
 	$invoiceid  = checkCbInvoiceID($invoiceid, $GATEWAY['name']); # Checks invoice ID is a valid invoice number or ends processing
 
 if ( ! function_exists('payping_status_message')){
@@ -66,11 +52,13 @@ if ( ! function_exists('payping_status_message')){
 		return null;
 	}
 }
-$data = array('refId' => $refid, 'amount' => $Amount );
+
+$serverio = $GATEWAY['serverio']; if($serverio == 'yes'){ $baseurl = "api.payping.io"; }else{ $baseurl = "api.payping.ir"; }
+$data = array('refId' => $_REQUEST['refid'], 'amount' => $Amount);
 try {
 	$curl = curl_init();
 	curl_setopt_array($curl, array(
-		CURLOPT_URL => "https://api.payping.ir/v2/pay/verify",
+		CURLOPT_URL => "https://$baseurl/v2/pay/verify",
 		CURLOPT_RETURNTRANSFER => true,
 		CURLOPT_ENCODING => "",
 		CURLOPT_MAXREDIRS => 10,
@@ -95,8 +83,8 @@ try {
 	} else {
 		if ($header['http_code'] == 200) {
 			$response = json_decode($response, true);
-			if( isset( $refid ) and $refid != '' ){
-				$transid = $refid;
+			if (isset($_REQUEST["refid"]) and $_REQUEST["refid"] != '') {
+				$transid = $_REQUEST["refid"] ;
 				if($GATEWAY['Currencies'] == 'ریال'){
 					$Amount  *= 10;
 				}

@@ -1,21 +1,23 @@
 <?php
 /*
 Plugin Name: افزونه پرداخت پی‌پینگ برای WHMCS
-Version: 1.0
+Version: 2.0.0
 Description:  افزونه درگاه پرداخت پی‌پینگ برای WHMCS
 Plugin URI: https://www.payping.ir/
-Author: Erfan Ebrahimi
-Author URI: http://erfanebrahimi.ir/
+Author: Mahdi Sarani
+Author URI: https://mahdisarani.ir
 
 */
 function payping_config() {
     $configarray = array(
      "FriendlyName" => array("Type" => "System", "FriendlyName" => "عنوان درگاه", "Value"=>"پی‌پینگ"),
-     "tokenCode" => array("FriendlyName" => "کد توکن اختصاصی", "Type" => "text", "Size" => "80", ),
-     "Currencies" => array("FriendlyName" => "واحد مالی", "Type" => "dropdown", "Options" => "ریال,تومان", ),
+     "tokenCode"    => array("FriendlyName" => "کد توکن اختصاصی", "Type" => "text", "Size" => "80", ),
+     "Currencies"   => array("FriendlyName" => "واحد مالی", "Type" => "dropdown", "Options" => "ریال,تومان", ),
+	 "serverio"     => array("FriendlyName" => "سرور خارج", "Type" => "yesno", 'Description' => 'برای اتصال به سرور خارج فعال شود', 'Default' => 'no' ),
      );
 	return $configarray;
 }
+
 
 function payping_status_message($code) {
 	switch ($code){
@@ -47,8 +49,9 @@ function payping_status_message($code) {
 function payping_link($params) {
 
 	# Gateway Specific Variables
-	$tokenCode = $params['tokenCode'];
+	$tokenCode  = $params['tokenCode'];
     $currencies = $params['Currencies'];
+	$serverio   = $params['serverio']; if($serverio == 'yes'){ $baseurl = "api.payping.io"; }else{ $baseurl = "api.payping.ir"; }
     
 	# Invoice Variables
 	$invoiceid = $params['invoiceid'];
@@ -85,8 +88,7 @@ function payping_link($params) {
 
 	try {
 		$curl = curl_init();
-
-		curl_setopt_array($curl, array(CURLOPT_URL => "https://api.payping.ir/v2/pay",
+		curl_setopt_array($curl, array(CURLOPT_URL => "https://$baseurl/v2/pay",
 			CURLOPT_RETURNTRANSFER => true,
 			CURLOPT_ENCODING => "",
 			CURLOPT_MAXREDIRS => 10,
@@ -113,7 +115,7 @@ function payping_link($params) {
 			if ($header['http_code'] == 200) {
 				$response = json_decode($response, true);
 				if (isset($response["code"]) and $response["code"] != '') {
-					$link = sprintf('https://api.payping.ir/v2/pay/gotoipg/%s', $response["code"]);
+					$link = sprintf("https://$baseurl/v2/pay/gotoipg/%s", $response["code"]);
 					$return = '<form method="get" action="'.$link.'"><input type="submit" value=" پرداخت " /></form>';
 				} else {
 					$return = ' تراکنش ناموفق بود- شرح خطا : عدم وجود کد ارجاع ';
