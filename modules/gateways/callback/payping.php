@@ -155,10 +155,26 @@ $invoiceId = checkCbInvoiceID($invoiceId, $gatewayParams['name']);
 $baseUrl = $gatewayParams['serverio'] === 'yes' ? "https://api.payping.io" : "https://api.payping.ir";
 $verifyUrl = "$baseUrl/v3/pay/verify";
 
+$invoiceData = select_query("tblinvoices", "notes", ["id" => $invoiceId]);
+$data = mysql_fetch_array($invoiceData);
+$notes = $data['notes'] ?? '';
+
+// Extract payment code using Persian keyword
+if (preg_match('/^> شناسه پرداخت:\s*(\S+)/mu', $notes, $matches)) {
+    $paymentCode = $matches[1];
+} else {
+    $paymentCode = null;
+}
+
+if (!$paymentCode) {
+    die("کد پرداخت یافت نشد");
+}
+
 // Prepare verification data
 $verificationData = [
     'PaymentRefId' => intval($paymentRefId),
-    'amount' => $invoiceAmount,
+    'PaymentCode'  => $paymentCode,
+    'amount'       => $invoiceAmount,
 ];
 
 // Initialize cURL for verification request
@@ -198,11 +214,8 @@ if($httpCode === 200){
     checkCbTransID($paymentRefId); // Ensure the transaction ID is unique.
     addInvoicePayment($invoiceId, $paymentRefId, $paidAmount, 0, $gatewayModuleName); // Apply payment to the invoice.
     logTransaction($gatewayParams['name'], $responseData, 'Successful');
-    
 } elseif ($httpCode === 409) {
-    
     logTransaction($gatewayParams['name'], $responseData, 'Duplicate Transaction');
-    
 } else {
     logTransaction($gatewayParams['name'], $responseData, 'Unsuccessful');
     redirectWithError($invoiceId, $httpCode, payping_error_message_verify($httpCode));

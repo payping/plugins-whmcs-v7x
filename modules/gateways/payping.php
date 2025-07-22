@@ -102,6 +102,8 @@ function payping_link($params) {
             CURLOPT_HTTPHEADER => [
                 "accept: application/json",
                 "authorization: Bearer {$tokenCode}",
+                "X-Platform"    => "WHMCS",
+				"X-Platform-Version" => "3.0.0",
                 "content-type: application/json"
             ]
         ]);
@@ -118,12 +120,36 @@ function payping_link($params) {
         if ($httpCode === 200) {
             $response = json_decode($response, true);
             if (!empty($response["paymentCode"])) {
-                $link = "https://{$baseurl}/v3/pay/start/{$response['paymentCode']}";
+                
+                $paymentCode = $response['paymentCode'];
+                
+                // Insert Paycode in note
+                $invoiceId = $params['invoiceid'];
+                $currentNotes = select_query("tblinvoices", "notes", ["id" => $invoiceId]);
+                $data = mysql_fetch_array($currentNotes);
+                $oldNotes = $data['notes'] ?? '';
+                
+                // Insert or update payment identifier in notes
+                if (preg_match('/^> شناسه پرداخت: .+/mu', $oldNotes)) {
+                    $newNotes = preg_replace(
+                        '/^> شناسه پرداخت: .+/mu',
+                        '> شناسه پرداخت: ' . $paymentCode,
+                        $oldNotes
+                    );
+                } else {
+                    $newNotes = trim($oldNotes) . "\n\n> شناسه پرداخت: " . $paymentCode;
+                }
+                
+                update_query("tblinvoices", ["notes" => $newNotes], ["id" => $invoiceId]);
+
+                
+                $link = "https://{$baseurl}/v3/pay/start/{$paymentCode}";
                 return '<form method="get" action="' . $link . '"><input type="submit" value=" پرداخت " /></form>';
+                    
             } else {
                 return 'تراکنش ناموفق بود - شرح خطا: عدم وجود کد ارجاع';
             }
-        } 
+        }
 
         $errorMessage = payping_status_message($httpCode);
         return "تراکنش ناموفق بود - شرح خطا: {$errorMessage} ({$httpCode})";
